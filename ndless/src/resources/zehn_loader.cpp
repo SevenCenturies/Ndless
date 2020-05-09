@@ -74,7 +74,7 @@ static void wu32(void *ptr, uint32_t val)
 	    memcpy(ptr, &val, sizeof(val));
 }
 
-extern "C" int zehn_load(NUC_FILE *file, void **mem_ptr, int (**entry)(int,char*[]), bool *supports_hww)
+extern "C" int zehn_load(NUC_FILE *file, void **mem_ptr, int (**entry)(int,char*[]), bool *supports_hww, bool *supports_abort_handler)
 {
 	Zehn_header header;
 
@@ -233,6 +233,9 @@ extern "C" int zehn_load(NUC_FILE *file, void **mem_ptr, int (**entry)(int,char*
 			break;
                 case Zehn_flag_type::RUNS_ON_HWW:
                         *supports_hww = f.data;
+			break;
+		case Zehn_flag_type::SUPPORTS_ABORT_HANDLER:
+			*supports_abort_handler = f.data;
 			break;
 		default:
 			break;

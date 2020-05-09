@@ -8,7 +8,7 @@ extern bool is_hww;
 
 void lcd_compat_load_hwrev(void);
 
-bool lcd_compat_enable(void);
-void lcd_compat_disable(void);
+bool lcd_compat_enable(bool supports_abort_handler);
+void lcd_compat_disable(bool supports_abort_handler);
 
 #endif /* LCD_COMPAT_H */

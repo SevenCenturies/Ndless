@@ -161,7 +161,7 @@ static void spi_send(uint8_t cmd, const uint8_t *data, unsigned int data_count)
     spi_send(cmd, data, sizeof(data)); \
 } while(0)
 
-bool lcd_compat_enable()
+bool lcd_compat_enable(bool supports_abort_handler)
 {
     // Only needed on HW-W+
     if(!is_hww)
@@ -203,22 +203,24 @@ bool lcd_compat_enable()
     *(volatile uint32_t*)0xC0000010 = (uint32_t) new_framebuffer;
     *(volatile uint32_t*)0xC0000018 |= 0x800; // Enable the LCD
 
-    // Get address of translation table
-    uint32_t *tt_base;
-    asm volatile("mrc p15, 0, %[tt_base], c2, c0, 0" : [tt_base] "=r" (tt_base));
+    if(supports_abort_handler)
+    {
+        // Get address of translation table
+        uint32_t *tt_base;
+        asm volatile("mrc p15, 0, %[tt_base], c2, c0, 0" : [tt_base] "=r" (tt_base));
 
-    // Map LCDC from 0xC0000000 to real_lcdc
-    tt_base[(uint32_t) real_lcdc >> 20] = tt_base[0xC00];
-    tt_base[0xC00] = 0;
+        // Map LCDC from 0xC0000000 to real_lcdc
+        tt_base[(uint32_t) real_lcdc >> 20] = tt_base[0xC00];
+        tt_base[0xC00] = 0;
 
-    // Flush TLB for 0xC0000000 and real_lcdc
-    asm volatile("mcr p15, 0, %[base], c8, c7, 1" :: [base] "r" (0xC0000000));
-    asm volatile("mcr p15, 0, %[base], c8, c7, 1" :: [base] "r" (real_lcdc));
+        // Flush TLB for 0xC0000000 and real_lcdc
+        asm volatile("mcr p15, 0, %[base], c8, c7, 1" :: [base] "r" (0xC0000000));
+        asm volatile("mcr p15, 0, %[base], c8, c7, 1" :: [base] "r" (real_lcdc));
 
-    // Install data abort handler
-    void lcd_compat_abort_handler();
-    *(volatile uint32_t*)0x30 = (uint32_t) lcd_compat_abort_handler;
-
+        // Install data abort handler
+        void lcd_compat_abort_handler();
+        *(volatile uint32_t*)0x30 = (uint32_t) lcd_compat_abort_handler;
+    }
     return true;
 }
 
@@ -234,7 +236,7 @@ static void undo_lcdc_remap()
     asm volatile("mcr p15, 0, %[base], c8, c7, 1" :: [base] "r" (0xC0000000));
 }
 
-void lcd_compat_disable()
+void lcd_compat_disable(bool supports_abort_handler)
 {
     if(!is_hww)
         return;
@@ -245,7 +247,8 @@ void lcd_compat_disable()
     SPI_SEND(0x2A, 0x00, 0x00, 0x00, 0xEF);
     SPI_SEND(0x2B, 0x00, 0x00, 0x01, 0x3F);
 
-    undo_lcdc_remap();
+    if(supports_abort_handler)
+        undo_lcdc_remap();
 
     // Restore the LCD params
     volatile uint32_t *lcdc = (volatile uint32_t*) 0xC0000000;

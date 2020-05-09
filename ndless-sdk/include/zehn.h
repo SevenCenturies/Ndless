@@ -68,6 +68,7 @@ enum class Zehn_flag_type : uint8_t
     EXECUTABLE_NOTICE, //May contain anything as string
     RUNS_ON_HWW, //Whether the executable support the 90° rotated 240x320 LCD on HW-W
     USES_LCD_BLIT, //Whether the executable uses the new screen API (lcd_blit)
+    SUPPORTS_ABORT_HANDLER, //Whether the executable is compatible with the abort handler
 };
 
 struct Zehn_flag

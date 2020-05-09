@@ -65,7 +65,7 @@ void ld_set_resident(void) {
 
 enum e_ld_bin_format ld_bin_format = LD_ERROR_BIN;
 
-static int ndless_load(const char *docpath, NUC_FILE *docfile, void **base, int (**entry_address_ptr)(int, char*[]), bool *supports_hww)
+static int ndless_load(const char *docpath, NUC_FILE *docfile, void **base, int (**entry_address_ptr)(int, char*[]), bool *supports_hww, bool *supports_abort_handler)
 {
 	struct nuc_stat docstat;
 	if (nuc_stat(docpath, &docstat)) {
@@ -106,7 +106,7 @@ static int ndless_load(const char *docpath, NUC_FILE *docfile, void **base, int 
 		if(*ptr32 == 0x6e68655a && *(ptr32 + 1) == 1)
 		{
 			nuc_fseek(docfile, (uint8_t*)(ptr32) - (uint8_t*)(docptr), SEEK_SET);
-			int ret = zehn_load(docfile, base, entry_address_ptr, supports_hww);
+			int ret = zehn_load(docfile, base, entry_address_ptr, supports_hww, supports_abort_handler);
 			switch(ret)
 			{
 			case 0: // Execute as Zehn
@@ -229,7 +229,7 @@ int ld_exec_with_args(const char *path, int argsn, char *args[], void **resident
 	char **argvptr;
 	int argc;
 	int ret;
-	bool isassoc = false, supports_hww = false;
+	bool isassoc = false, supports_hww = false, supports_abort_handler = true;
 	strcpy(doc_path, path);
 	strcpy(prgm_path, path); // may deffer if using file association
 
@@ -294,7 +294,7 @@ int ld_exec_with_args(const char *path, int argsn, char *args[], void **resident
 	switch(signature)
 	{
 	case 0x00475250: //"PRG\0"
-		if((ret = ndless_load(prgm_path, prgm, &base, &entry, &supports_hww)) == 0)
+		if((ret = ndless_load(prgm_path, prgm, &base, &entry, &supports_hww, &supports_abort_handler)) == 0)
 		{
 			nuc_fclose(prgm);
 			ld_bin_format = LD_PRG_BIN;
@@ -314,7 +314,7 @@ int ld_exec_with_args(const char *path, int argsn, char *args[], void **resident
 		nuc_fclose(prgm);
 		return 0xDEAD;
 	case 0x6e68655a: //"Zehn"
-		if((ret = zehn_load(prgm, &base, &entry, &supports_hww)) == 0)
+		if((ret = zehn_load(prgm, &base, &entry, &supports_hww, &supports_abort_handler)) == 0)
 		{
 			nuc_fclose(prgm);
 			ld_bin_format = LD_ZEHN_BIN;
@@ -374,7 +374,7 @@ int ld_exec_with_args(const char *path, int argsn, char *args[], void **resident
 	}
 
         if(!supports_hww)
-		lcd_compat_enable();
+		lcd_compat_enable(supports_abort_handler);
 	
 	is_current_prgm_resident = false;
 	clear_cache();
@@ -383,7 +383,7 @@ int ld_exec_with_args(const char *path, int argsn, char *args[], void **resident
 		lcd_incolor(); // in case not restored by the program
 
         if(!supports_hww)
-		lcd_compat_disable();
+		lcd_compat_disable(supports_abort_handler);
 
 	if(savedscr && !plh_noscrredraw)
 		memcpy((void*) REAL_SCREEN_BASE_ADDRESS, savedscr, _scrsize());

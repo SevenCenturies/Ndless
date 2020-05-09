@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int zehn_load(NUC_FILE *file, void **mem_ptr, int (**entry_address_ptr)(int,char*[]), bool *supports_hww);
+  int zehn_load(NUC_FILE *file, void **mem_ptr, int (**entry_address_ptr)(int,char*[]), bool *supports_hww, bool *supports_abort_handler);
 
 #ifdef __cplusplus
 }

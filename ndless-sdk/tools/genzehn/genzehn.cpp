@@ -70,7 +70,8 @@ int main(int argc, char **argv)
             ("touchpad-support", opt::value<bool>()->default_value(true), "Whether touchpads (classic and CX/CM) are supported")
             ("32MB-support", opt::value<bool>()->default_value(true), "Whether 32MB SDRAM is supported")
             ("240x320-support", opt::value<bool>(), "Whether a 240x320x16 LCD (HW-W) is supported")
-            ("uses-lcd-blit", opt::value<bool>(), "Whether the new lcd_blit API is being used");
+            ("uses-lcd-blit", opt::value<bool>(), "Whether the new lcd_blit API is being used")
+            ("supports-abort-handler", opt::value<bool>(), "Whether the executable is compatible with the LCD data abort handler");
 
     opt::options_description all("All options");
     all.add(required).add(additional);
@@ -200,6 +201,10 @@ int main(int argc, char **argv)
                 if(flag.data)
                     std::cout << "This executable uses the new lcd_blit API." << std::endl;
                 break;
+            case Zehn_flag_type::SUPPORTS_ABORT_HANDLER:
+              if(flag.data)
+                std::cout << "This executable supports the new LCD abort handler." << std::endl;
+              break;
 
             default:
                 std::cout << "Unknown flag type " << static_cast<int>(flag.type) << std::endl;
@@ -412,6 +417,16 @@ int main(int argc, char **argv)
                   << "If it does, override with '--240x320-support true'." << std::endl;
 
     flag_table.push_back({Zehn_flag_type::RUNS_ON_HWW, hww_compat});
+
+    bool supports_abort_handler = true;
+    if(args.count("supports-abort-handler"))
+      supports_abort_handler = args["supports-abort-handler"].as<bool>();
+
+    if(!supports_abort_handler)
+      std::cerr << "Warning: Your application does not support the LCD data abort handler!" << std::endl
+                << "If it does, override with '--supports-abort-handler true'." << std::endl;
+
+    flag_table.push_back({Zehn_flag_type::SUPPORTS_ABORT_HANDLER, supports_abort_handler});
 
     // Whether there is a relocation at an unaligned address
     bool unaligned_reloc_found = false;
